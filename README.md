@@ -73,6 +73,10 @@ skill [--help]
 
 Skills are two levels deep: **category directory** → **skill `.md` file**.
 
+## Examples
+
+Example skill files and a ready-to-use skills repository can be found at [github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills).
+
 ## Keyboard shortcuts
 
 | Key | Action |

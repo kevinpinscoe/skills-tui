@@ -32,8 +32,8 @@ Grab the latest release for your platform from the [Releases](https://github.com
 ```bash
 # Example for macOS Apple Silicon
 curl -L https://github.com/kevinpinscoe/skills-tui/releases/latest/download/skill-darwin-arm64 \
-  -o ~/skills/commands/skill
-chmod +x ~/skills/commands/skill
+  -o ~/tools/skill
+chmod +x ~/tools/skill
 ```
 
 ### Build from source
@@ -41,7 +41,7 @@ chmod +x ~/skills/commands/skill
 ```bash
 git clone https://github.com/kevinpinscoe/skills-tui.git
 cd skills-tui
-make build   # installs to ~/skills/skill
+make install   # installs to ~/tools/skill
 ```
 
 ## Usage
@@ -59,9 +59,10 @@ skill [--help]
 ## Skills directory layout
 
 ```
+~/tools/
+└── skill              # this binary
+
 ~/skills/
-├── commands/
-│   └── skill          # this binary
 └── skills/
     ├── aws/
     │   └── deploy.md

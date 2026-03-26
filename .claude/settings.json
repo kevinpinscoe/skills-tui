@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SESSION=$(jq -r '.session_id'); echo \"claude --resume $SESSION\" > /Users/kinscoe/Projects/public/skills-tui/resume.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

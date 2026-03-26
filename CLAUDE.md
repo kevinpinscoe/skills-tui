@@ -46,6 +46,16 @@ See `skills/template.md` for the canonical template. Every skill file should hav
 - **Success Criteria** — how to verify the task completed correctly
 - **Notes** _(optional)_ — caveats, edge cases, related skills
 
+## Session resume
+
+At the end of each session, `resume.sh` in the project root is automatically updated with the current session ID so the session can be resumed. The file looks like:
+
+```
+claude --resume <session-id>
+```
+
+This is handled by a Stop hook in Claude Code settings. Do not commit `resume.sh` — it is in `.gitignore`.
+
 ## Skills source
 
 Skills are maintained and updated in other repos.

@@ -1,10 +1,16 @@
-BINARY := $(HOME)/skills/skill
-SRC    := ./
+BINARY      := ./skill
+INSTALL_DIR := $(HOME)/tools
+SRC         := ./
 
-.PHONY: build run test tidy clean
+.PHONY: build install run test tidy clean
 
 build: tidy
 	go build -o $(BINARY) $(SRC)
+
+install: build
+	mkdir -p $(INSTALL_DIR)
+	cp $(BINARY) $(INSTALL_DIR)/skill
+
 
 tidy:
 	go mod tidy

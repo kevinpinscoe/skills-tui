@@ -74,9 +74,41 @@ skill [--help]
 
 Skills are two levels deep: **category directory** → **skill `.md` file**.
 
+## Ignoring skill files
+
+Place a `.skillignore` file in your skills root (the parent of the `skills/` directory, e.g. `~/skills/.skillignore`) to hide specific skill files from the chooser.
+
+Each line is a filename to ignore (not a path). Blank lines and lines starting with `#` are ignored.
+
+```
+# ~/skills/.skillignore
+
+# hide work-in-progress skills
+draft-migration.md
+wip-deploy.md
+```
+
+The ignore list matches against the bare filename, so `deploy.md` will hide `aws/deploy.md` and any other category that has a file named `deploy.md`.
+
 ## Examples
 
 Example skill files and a ready-to-use skills repository can be found at [github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills).
+
+## macOS Gatekeeper
+
+Binaries downloaded from the internet are subject to macOS Gatekeeper. Starting with the release that includes ad-hoc signing, the `skill-darwin-arm64` binary is signed with `codesign --sign -` during the release build, which satisfies Gatekeeper for locally-run binaries without requiring an Apple Developer account.
+
+If you still see a Gatekeeper rejection (e.g. `spctl --assess ~/tools/skill` prints `rejected`), it may be because macOS has quarantined the file during download. Remove the quarantine attribute to allow it:
+
+```bash
+xattr -d com.apple.quarantine ~/tools/skill
+```
+
+Or, to manually ad-hoc sign a binary you built from source:
+
+```bash
+codesign --sign - ~/tools/skill
+```
 
 ## Keyboard shortcuts
 

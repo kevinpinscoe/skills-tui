@@ -91,6 +91,22 @@ func chooseFromList(title string, items []item) (item, bool) {
 	return final.choice, true
 }
 
+func loadIgnoreList(skillsDir string) map[string]bool {
+	ignored := make(map[string]bool)
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(skillsDir), ".skillignore"))
+	if err != nil {
+		return ignored
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		ignored[line] = true
+	}
+	return ignored
+}
+
 func expandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
@@ -131,6 +147,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	ignored := loadIgnoreList(skillsDir)
+
 	var categories []item
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -139,7 +157,7 @@ func main() {
 		subDir := filepath.Join(skillsDir, entry.Name())
 		subEntries, _ := os.ReadDir(subDir)
 		for _, sub := range subEntries {
-			if !sub.IsDir() && strings.HasSuffix(sub.Name(), ".md") {
+			if !sub.IsDir() && strings.HasSuffix(sub.Name(), ".md") && !ignored[sub.Name()] {
 				categories = append(categories, item{
 					title: entry.Name(),
 					path:  subDir,
@@ -167,7 +185,7 @@ func main() {
 
 	var skills []item
 	for _, entry := range subEntries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") || ignored[entry.Name()] {
 			continue
 		}
 		displayName := strings.TrimSuffix(entry.Name(), ".md")

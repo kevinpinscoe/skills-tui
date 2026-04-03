@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build and Release
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: write
 
@@ -27,6 +27,9 @@ jobs:
           GOOS=linux  GOARCH=amd64  go build -ldflags="-s -w" -o dist/skill-linux-amd64   .
           GOOS=darwin GOARCH=arm64  go build -ldflags="-s -w" -o dist/skill-darwin-arm64  .
           GOOS=linux  GOARCH=arm64  go build -ldflags="-s -w" -o dist/skill-linux-arm64   .
+
+      - name: Sign macOS binary
+        run: codesign --sign - dist/skill-darwin-arm64
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

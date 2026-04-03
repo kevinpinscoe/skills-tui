@@ -56,6 +56,10 @@ claude --resume <session-id>
 
 This is handled by a Stop hook in Claude Code settings. Do not commit `resume.sh` — it is in `.gitignore`.
 
+## Git workflow
+
+Always work on a feature branch — never commit directly to `main`. Before starting any task, ask the user for the feature branch name to use.
+
 ## Skills source
 
 Skills are maintained and updated in other repos.

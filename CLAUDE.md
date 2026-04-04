@@ -60,6 +60,26 @@ This is handled by a Stop hook in Claude Code settings. Do not commit `resume.sh
 
 Always work on a feature branch — never commit directly to `main`. Branch names must follow the pattern `claude/<feature-request>`. Before starting any task, ask the human what to name the `<feature-request>` portion.
 
+## GitHub branch protection
+
+The `main` branch is protected by a **branch ruleset** with these settings:
+
+* Enforcement: **Active**
+* Bypass: **my GitHub user only** (admins may also be added for emergency bypass)
+* Rules:
+  * **Require a pull request before merging**
+  * **1 required approval**
+  * **Require approval of the most recent push**
+  * **Require conversation resolution**
+  * **Block force pushes**
+  * **Block deletions**
+  * Optional: required status checks
+  * Optional: linear history
+
+A `CODEOWNERS` file assigns `@kevinpinscoe` as owner of all files, and **Require review from Code Owners** is enabled so the owner's approval is required for all PRs.
+
+The intent is: branches can be pushed freely to `origin`, but all changes to `main` must come through a pull request that the owner reviews and approves.
+
 ## Skills source
 
 Skills are maintained and updated in other repos.

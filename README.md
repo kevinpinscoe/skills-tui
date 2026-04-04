@@ -15,7 +15,7 @@ A terminal UI for browsing and launching [Claude Code](https://claude.ai/code) s
 - [Claude Code](https://claude.ai/code) CLI (`claude`) installed and on your `PATH`
 - A skills directory (default: `~/skills/skills`) containing category subdirectories with `.md` skill files
 
-See [kevinpinscoe/skills](https://github.com/kevinpinscoe/skills) for an example skills repository.
+See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills) for an example skills repository.
 
 ## Installation
 
@@ -92,7 +92,7 @@ The ignore list matches against the bare filename, so `deploy.md` will hide `aws
 
 ## Examples
 
-Example skill files and a ready-to-use skills repository can be found at [github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills).
+Example skill files and a ready-to-use skills repository can be found at [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills).
 
 ## macOS Gatekeeper
 

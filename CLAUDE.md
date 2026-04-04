@@ -58,7 +58,7 @@ This is handled by a Stop hook in Claude Code settings. Do not commit `resume.sh
 
 ## Git workflow
 
-Always work on a feature branch — never commit directly to `main`. Before starting any task, ask the user for the feature branch name to use.
+Always work on a feature branch — never commit directly to `main`. Branch names must follow the pattern `claude/<feature-request>`. Before starting any task, ask the human what to name the `<feature-request>` portion.
 
 ## Skills source
 

@@ -1,5 +1,5 @@
 BINARY      := ./skill
-INSTALL_DIR := $(HOME)/tools
+INSTALL_DIR := $(HOME)/.local/bin
 SRC         := ./
 
 .PHONY: build install run test tidy clean

@@ -7,13 +7,13 @@ A terminal UI for browsing and launching [Claude Code](https://claude.ai/code) s
 `skill` presents an interactive two-level chooser:
 
 1. Pick a **category** (subdirectory of your skills directory)
-2. Pick a **skill** (Markdown file in that category)
+2. Pick a **skill** (subdirectory containing a `SKILL.md` file)
 3. Confirm, and Claude Code is launched with the skill file as the prompt
 
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) CLI (`claude`) installed and on your `PATH`
-- A skills directory (default: `~/skills/skills`) containing category subdirectories with `.md` skill files
+- A skills directory (default: `~/skills/skills`) containing category subdirectories with skill subdirectories each containing a `SKILL.md` file
 
 See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills) for an example skills repository.
 
@@ -32,8 +32,8 @@ Grab the latest release for your platform from the [Releases](https://github.com
 ```bash
 # Example for macOS Apple Silicon
 curl -L https://github.com/kevinpinscoe/skills-tui/releases/latest/download/skill-darwin-arm64 \
-  -o ~/tools/skill
-chmod +x ~/tools/skill
+  -o ~/.local/bin/skill
+chmod +x ~/.local/bin/skill
 ```
 
 ### Build from source
@@ -41,7 +41,7 @@ chmod +x ~/tools/skill
 ```bash
 git clone https://github.com/kevinpinscoe/skills-tui.git
 cd skills-tui
-make install   # installs to ~/tools/skill
+make install   # installs to ~/.local/bin/skill
 ```
 
 ## Usage
@@ -59,36 +59,23 @@ skill [--help]
 ## Skills directory layout
 
 ```
-~/tools/
+~/.local/bin/
 └── skill              # this binary
 
 ~/skills/
 └── skills/
     ├── aws/
-    │   └── deploy.md
+    │   └── deploy/
+    │       └── SKILL.md
     ├── backup/
-    │   └── snapshot.md
+    │   └── snapshot/
+    │       └── SKILL.md
     └── monday.com/
-        └── create-item.md
+        └── create-item/
+            └── SKILL.md
 ```
 
-Skills are two levels deep: **category directory** → **skill `.md` file**.
-
-## Ignoring skill files
-
-Place a `.skillignore` file in your skills root (the parent of the `skills/` directory, e.g. `~/skills/.skillignore`) to hide specific skill files from the chooser.
-
-Each line is a filename to ignore (not a path). Blank lines and lines starting with `#` are ignored.
-
-```
-# ~/skills/.skillignore
-
-# hide work-in-progress skills
-draft-migration.md
-wip-deploy.md
-```
-
-The ignore list matches against the bare filename, so `deploy.md` will hide `aws/deploy.md` and any other category that has a file named `deploy.md`.
+Skills are three levels deep: **category directory** → **skill directory** → **`SKILL.md`**.
 
 ## Examples
 
@@ -98,16 +85,16 @@ Example skill files and a ready-to-use skills repository can be found at [https:
 
 Binaries downloaded from the internet are subject to macOS Gatekeeper. Starting with the release that includes ad-hoc signing, the `skill-darwin-arm64` binary is signed with `codesign --sign -` during the release build, which satisfies Gatekeeper for locally-run binaries without requiring an Apple Developer account.
 
-If you still see a Gatekeeper rejection (e.g. `spctl --assess ~/tools/skill` prints `rejected`), it may be because macOS has quarantined the file during download. Remove the quarantine attribute to allow it:
+If you still see a Gatekeeper rejection (e.g. `spctl --assess ~/.local/bin/skill` prints `rejected`), it may be because macOS has quarantined the file during download. Remove the quarantine attribute to allow it:
 
 ```bash
-xattr -d com.apple.quarantine ~/tools/skill
+xattr -d com.apple.quarantine ~/.local/bin/skill
 ```
 
 Or, to manually ad-hoc sign a binary you built from source:
 
 ```bash
-codesign --sign - ~/tools/skill
+codesign --sign - ~/.local/bin/skill
 ```
 
 ## Keyboard shortcuts

@@ -7,13 +7,15 @@ A terminal UI for browsing and launching [Claude Code](https://claude.ai/code) s
 `skill` presents an interactive two-level chooser:
 
 1. Pick a **category** (subdirectory of your skills directory)
-2. Pick a **skill** (subdirectory containing a `SKILL.md` file)
-3. Confirm, and Claude Code is launched with the skill file as the prompt
+2. Pick a **skill** (subdirectory containing either a `run.sh` script or a `SKILL.md` file)
+3. Confirm, and the skill runs:
+   - If the skill directory contains a `run.sh`, `skill` changes into that directory and executes `run.sh` as a shell script (stdin is wired through, so the script can prompt for input).
+   - Otherwise, Claude Code is launched with the contents of `SKILL.md` as the prompt.
 
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) CLI (`claude`) installed and on your `PATH`
-- A skills directory (default: `~/skills/skills`) containing category subdirectories with skill subdirectories each containing a `SKILL.md` file
+- A skills directory (default: `~/skills/skills`) containing category subdirectories with skill subdirectories. Each skill subdirectory must contain either a `run.sh` script or a `SKILL.md` file (or both — `run.sh` takes precedence).
 
 See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills) for an example skills repository.
 
@@ -70,12 +72,15 @@ skill [--help]
     ├── backup/
     │   └── snapshot/
     │       └── SKILL.md
-    └── monday.com/
-        └── create-item/
-            └── SKILL.md
+    └── YouTrack/
+        └── create-ticket/
+            ├── run.sh
+            └── create-ticket.py
 ```
 
-Skills are three levels deep: **category directory** → **skill directory** → **`SKILL.md`**.
+Skills are three levels deep: **category directory** → **skill directory** → **`run.sh` or `SKILL.md`**.
+
+When a skill uses `run.sh`, the script is executed with its directory as the working directory, so it can reference co-located files (e.g. `./create-ticket.py`) by relative path.
 
 ## Examples
 

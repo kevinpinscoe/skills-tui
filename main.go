@@ -91,6 +91,16 @@ func chooseFromList(title string, items []item) (item, bool) {
 	return final.choice, true
 }
 
+func hasRunnable(dir string) bool {
+	if _, err := os.Stat(filepath.Join(dir, "run.sh")); err == nil {
+		return true
+	}
+	if _, err := os.Stat(filepath.Join(dir, "SKILL.md")); err == nil {
+		return true
+	}
+	return false
+}
+
 func expandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
@@ -148,8 +158,8 @@ func main() {
 			if sub.Name() == "archived" {
 				continue
 			}
-			skillFile := filepath.Join(subDir, sub.Name(), "SKILL.md")
-			if _, err := os.Stat(skillFile); err == nil {
+			skillDir := filepath.Join(subDir, sub.Name())
+			if hasRunnable(skillDir) {
 				categories = append(categories, item{
 					title: entry.Name(),
 					path:  subDir,
@@ -183,14 +193,14 @@ func main() {
 		if entry.Name() == "archived" {
 			continue
 		}
-		skillFile := filepath.Join(chosenCategory.path, entry.Name(), "SKILL.md")
-		if _, err := os.Stat(skillFile); err != nil {
+		skillDir := filepath.Join(chosenCategory.path, entry.Name())
+		if !hasRunnable(skillDir) {
 			continue
 		}
 		displayName := strings.ReplaceAll(entry.Name(), "-", " ")
 		skills = append(skills, item{
 			title: displayName,
-			path:  skillFile,
+			path:  skillDir,
 		})
 	}
 
@@ -212,13 +222,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	content, err := os.ReadFile(chosenSkill.path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading skill file: %v\n", err)
-		os.Exit(1)
-	}
+	runScript := filepath.Join(chosenSkill.path, "run.sh")
+	skillFile := filepath.Join(chosenSkill.path, "SKILL.md")
 
-	cmd := exec.Command("claude", string(content))
+	var cmd *exec.Cmd
+	if _, err := os.Stat(runScript); err == nil {
+		cmd = exec.Command("bash", "run.sh")
+		cmd.Dir = chosenSkill.path
+	} else {
+		content, err := os.ReadFile(skillFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading skill file: %v\n", err)
+			os.Exit(1)
+		}
+		cmd = exec.Command("claude", string(content))
+	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

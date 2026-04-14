@@ -136,10 +136,16 @@ func main() {
 		if !entry.IsDir() {
 			continue
 		}
+		if entry.Name() == "archived" {
+			continue
+		}
 		subDir := filepath.Join(skillsDir, entry.Name())
 		subEntries, _ := os.ReadDir(subDir)
 		for _, sub := range subEntries {
 			if !sub.IsDir() {
+				continue
+			}
+			if sub.Name() == "archived" {
 				continue
 			}
 			skillFile := filepath.Join(subDir, sub.Name(), "SKILL.md")
@@ -172,6 +178,9 @@ func main() {
 	var skills []item
 	for _, entry := range subEntries {
 		if !entry.IsDir() {
+			continue
+		}
+		if entry.Name() == "archived" {
 			continue
 		}
 		skillFile := filepath.Join(chosenCategory.path, entry.Name(), "SKILL.md")

@@ -32,7 +32,7 @@ jobs:
         run: codesign --sign - dist/skill-darwin-arm64
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/skill-linux-amd64

@@ -91,6 +91,19 @@ func chooseFromList(title string, items []item) (item, bool) {
 	return final.choice, true
 }
 
+func stripFrontmatter(content []byte) []byte {
+	s := string(content)
+	if !strings.HasPrefix(s, "---") {
+		return content
+	}
+	end := strings.Index(s[3:], "\n---")
+	if end == -1 {
+		return content
+	}
+	rest := s[3+end+4:] // skip opening ---, content, and closing ---
+	return []byte(strings.TrimLeft(rest, "\n"))
+}
+
 func hasRunnable(dir string) bool {
 	if _, err := os.Stat(filepath.Join(dir, "run.sh")); err == nil {
 		return true
@@ -235,7 +248,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error reading skill file: %v\n", err)
 			os.Exit(1)
 		}
-		cmd = exec.Command("claude", string(content))
+		cmd = exec.Command("claude", string(stripFrontmatter(content)))
 	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

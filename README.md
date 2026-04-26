@@ -31,10 +31,34 @@ Grab the latest release for your platform from the [Releases](https://github.com
 | macOS Apple Silicon | `skill-darwin-arm64` |
 | Raspberry Pi (64-bit) | `skill-linux-arm64` |
 
+Each release includes a `checksums.txt` (SHA-256) and a `commit.txt` recording the exact git commit the binaries were built from.
+
 ```bash
-# Example for macOS Apple Silicon
-curl -L https://github.com/kevinpinscoe/skills-tui/releases/latest/download/skill-darwin-arm64 \
-  -o ~/.local/bin/skill
+# Linux x86-64
+BINARY=skill-linux-amd64
+
+# macOS Apple Silicon
+BINARY=skill-darwin-arm64
+
+# Raspberry Pi 64-bit
+BINARY=skill-linux-arm64
+```
+
+```bash
+BASE=https://github.com/kevinpinscoe/skills-tui/releases/latest/download
+
+# Download the binary and verification files
+curl -fsSL "$BASE/$BINARY"       -o ~/.local/bin/skill
+curl -fsSL "$BASE/checksums.txt" -o /tmp/skill-checksums.txt
+curl -fsSL "$BASE/commit.txt"    -o /tmp/skill-commit.txt
+
+# Verify the checksum
+echo "$(grep "$BINARY" /tmp/skill-checksums.txt | awk '{print $1}')  $HOME/.local/bin/skill" \
+  | shasum -a 256 --check
+
+# Confirm the source commit (optional — cross-reference with GitHub)
+cat /tmp/skill-commit.txt
+
 chmod +x ~/.local/bin/skill
 ```
 

@@ -114,17 +114,27 @@ Example skill files and a ready-to-use skills repository can be found at [https:
 
 Binaries downloaded from the internet are subject to macOS Gatekeeper. Starting with the release that includes ad-hoc signing, the `skill-darwin-arm64` binary is signed with `codesign --sign -` during the release build, which satisfies Gatekeeper for locally-run binaries without requiring an Apple Developer account.
 
-If you still see a Gatekeeper rejection (e.g. `spctl --assess ~/.local/bin/skill` prints `rejected`), it may be because macOS has quarantined the file during download. Remove the quarantine attribute to allow it:
+If the binary is killed immediately on launch (exit code 137 / SIGKILL), Gatekeeper has rejected the signature on a downloaded file. Two attributes can cause this:
 
-```bash
-xattr -d com.apple.quarantine ~/.local/bin/skill
-```
+- **`com.apple.quarantine`** — set when a browser downloads the file. Strip it with:
+
+  ```bash
+  xattr -d com.apple.quarantine ~/.local/bin/skill
+  ```
+
+- **`com.apple.provenance`** — set on macOS 14+ for files downloaded by `curl`. It is a protected attribute and **cannot be removed with `xattr`**. Re-sign the binary locally instead, which makes Gatekeeper trust your local ad-hoc signature:
+
+  ```bash
+  codesign --force --sign - ~/.local/bin/skill
+  ```
 
 Or, to manually ad-hoc sign a binary you built from source:
 
 ```bash
 codesign --sign - ~/.local/bin/skill
 ```
+
+Note: `spctl --assess --type execute ~/.local/bin/skill` may still print `rejected` for ad-hoc-signed binaries even after the workarounds above. That is `spctl`'s static assessment, not the actual execution gate — if `skill --version` runs successfully, the binary is fine.
 
 ## Keyboard shortcuts
 

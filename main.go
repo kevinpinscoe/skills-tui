@@ -12,6 +12,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var version = "dev"
+
 var titleStyle = lipgloss.NewStyle().MarginLeft(2)
 
 type item struct {
@@ -125,12 +127,19 @@ func expandHome(path string) string {
 	return path
 }
 
+func resolveSkillsDir() (path string, fromEnv bool) {
+	if v := os.Getenv("SKILLS_DIR"); v != "" {
+		return expandHome(v), true
+	}
+	return expandHome("~/skills/skills"), false
+}
+
 func main() {
 	for _, arg := range os.Args[1:] {
 		if arg == "--help" || arg == "-h" {
 			fmt.Println("skill — browse and launch skills via Claude Code")
 			fmt.Println()
-			fmt.Println("Usage: skill [--help]")
+			fmt.Println("Usage: skill [--help] [--version]")
 			fmt.Println()
 			fmt.Println("  Presents an interactive chooser to select a skill category,")
 			fmt.Println("  then a skill, then launches Claude Code with that skill as")
@@ -140,13 +149,23 @@ func main() {
 			fmt.Println("  SKILLS_DIR   Root skills directory (default: ~/skills/skills)")
 			os.Exit(0)
 		}
+		if arg == "--version" || arg == "-v" {
+			dir, fromEnv := resolveSkillsDir()
+			source := "default"
+			if fromEnv {
+				source = "SKILLS_DIR"
+			}
+			fmt.Printf("skill %s\n", version)
+			fmt.Println()
+			fmt.Println("Usage: skill [--help] [--version]")
+			fmt.Println("  Browse skill categories and launch Claude Code with the selected skill.")
+			fmt.Println()
+			fmt.Printf("Skills directory: %s (%s)\n", dir, source)
+			os.Exit(0)
+		}
 	}
 
-	skillsDir := os.Getenv("SKILLS_DIR")
-	if skillsDir == "" {
-		skillsDir = "~/skills/skills"
-	}
-	skillsDir = expandHome(skillsDir)
+	skillsDir, _ := resolveSkillsDir()
 
 	entries, err := os.ReadDir(skillsDir)
 	if err != nil {

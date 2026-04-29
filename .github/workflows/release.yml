@@ -24,9 +24,10 @@ jobs:
       - name: Build binaries
         run: |
           mkdir -p dist
-          GOOS=linux  GOARCH=amd64  go build -ldflags="-s -w" -o dist/skill-linux-amd64   .
-          GOOS=darwin GOARCH=arm64  go build -ldflags="-s -w" -o dist/skill-darwin-arm64  .
-          GOOS=linux  GOARCH=arm64  go build -ldflags="-s -w" -o dist/skill-linux-arm64   .
+          LDFLAGS="-s -w -X main.version=${GITHUB_REF_NAME}"
+          GOOS=linux  GOARCH=amd64  go build -ldflags="$LDFLAGS" -o dist/skill-linux-amd64   .
+          GOOS=darwin GOARCH=arm64  go build -ldflags="$LDFLAGS" -o dist/skill-darwin-arm64  .
+          GOOS=linux  GOARCH=arm64  go build -ldflags="$LDFLAGS" -o dist/skill-linux-arm64   .
 
       - name: Sign macOS binary
         run: codesign --sign - dist/skill-darwin-arm64

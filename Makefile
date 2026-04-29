@@ -1,11 +1,13 @@
 BINARY      := ./skill
 INSTALL_DIR := $(HOME)/.local/bin
 SRC         := ./
+VERSION     := $(shell git describe --tags --dirty --always 2>/dev/null || echo dev)
+LDFLAGS     := -X main.version=$(VERSION)
 
 .PHONY: build install run test tidy clean
 
 build: tidy
-	go build -o $(BINARY) $(SRC)
+	go build -ldflags="$(LDFLAGS)" -o $(BINARY) $(SRC)
 
 install: build
 	mkdir -p $(INSTALL_DIR)

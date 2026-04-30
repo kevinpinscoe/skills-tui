@@ -106,6 +106,20 @@ func stripFrontmatter(content []byte) []byte {
 	return []byte(strings.TrimLeft(rest, "\n"))
 }
 
+func isDir(parent string, entry os.DirEntry) bool {
+	if entry.IsDir() {
+		return true
+	}
+	if entry.Type()&os.ModeSymlink == 0 {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(parent, entry.Name()))
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}
+
 func hasRunnable(dir string) bool {
 	if _, err := os.Stat(filepath.Join(dir, "run.sh")); err == nil {
 		return true
@@ -175,7 +189,7 @@ func main() {
 
 	var categories []item
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if !isDir(skillsDir, entry) {
 			continue
 		}
 		if entry.Name() == "archived" {
@@ -184,7 +198,7 @@ func main() {
 		subDir := filepath.Join(skillsDir, entry.Name())
 		subEntries, _ := os.ReadDir(subDir)
 		for _, sub := range subEntries {
-			if !sub.IsDir() {
+			if !isDir(subDir, sub) {
 				continue
 			}
 			if sub.Name() == "archived" {
@@ -219,7 +233,7 @@ func main() {
 
 	var skills []item
 	for _, entry := range subEntries {
-		if !entry.IsDir() {
+		if !isDir(chosenCategory.path, entry) {
 			continue
 		}
 		if entry.Name() == "archived" {

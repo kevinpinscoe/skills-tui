@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,6 +21,40 @@ var titleStyle = lipgloss.NewStyle().MarginLeft(2)
 type item struct {
 	title string
 	path  string
+	mtime time.Time
+}
+
+type sortMode int
+
+const (
+	sortAlpha sortMode = iota
+	sortMtime
+	sortRecent
+)
+
+func parseSortMode(s string) (sortMode, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "", "alpha":
+		return sortAlpha, nil
+	case "mtime":
+		return sortMtime, nil
+	case "recent":
+		return sortRecent, nil
+	}
+	return 0, fmt.Errorf("invalid sort mode %q (want alpha, mtime, or recent)", s)
+}
+
+func sortItems(items []item, mode sortMode) {
+	switch mode {
+	case sortAlpha:
+		sort.SliceStable(items, func(i, j int) bool {
+			return strings.ToLower(items[i].title) < strings.ToLower(items[j].title)
+		})
+	case sortMtime, sortRecent:
+		sort.SliceStable(items, func(i, j int) bool {
+			return items[i].mtime.After(items[j].mtime)
+		})
+	}
 }
 
 func (i item) Title() string       { return i.title }
@@ -130,6 +166,53 @@ func hasRunnable(dir string) bool {
 	return false
 }
 
+func dirMtime(dir string) time.Time {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return time.Time{}
+	}
+	return info.ModTime()
+}
+
+func skillRecentMtime(skillDir string) time.Time {
+	var newest time.Time
+	for _, name := range []string{"run.sh", "SKILL.md"} {
+		if info, err := os.Stat(filepath.Join(skillDir, name)); err == nil {
+			if info.ModTime().After(newest) {
+				newest = info.ModTime()
+			}
+		}
+	}
+	if newest.IsZero() {
+		return dirMtime(skillDir)
+	}
+	return newest
+}
+
+func categoryRecentMtime(categoryDir string) time.Time {
+	entries, err := os.ReadDir(categoryDir)
+	if err != nil {
+		return dirMtime(categoryDir)
+	}
+	var newest time.Time
+	for _, e := range entries {
+		if !isDir(categoryDir, e) || e.Name() == "archived" {
+			continue
+		}
+		skillDir := filepath.Join(categoryDir, e.Name())
+		if !hasRunnable(skillDir) {
+			continue
+		}
+		if t := skillRecentMtime(skillDir); t.After(newest) {
+			newest = t
+		}
+	}
+	if newest.IsZero() {
+		return dirMtime(categoryDir)
+	}
+	return newest
+}
+
 func expandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
@@ -149,21 +232,36 @@ func resolveSkillsDir() (path string, fromEnv bool) {
 }
 
 func main() {
+	mode := sortAlpha
+	if v := os.Getenv("SKILL_SORT"); v != "" {
+		m, err := parseSortMode(v)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "SKILL_SORT:", err)
+			os.Exit(2)
+		}
+		mode = m
+	}
 	for _, arg := range os.Args[1:] {
-		if arg == "--help" || arg == "-h" {
+		switch {
+		case arg == "--help" || arg == "-h":
 			fmt.Println("skill — browse and launch skills via Claude Code")
 			fmt.Println()
-			fmt.Println("Usage: skill [--help] [--version]")
+			fmt.Println("Usage: skill [--help] [--version] [--sort=<order>]")
 			fmt.Println()
 			fmt.Println("  Presents an interactive chooser to select a skill category,")
 			fmt.Println("  then a skill, then launches Claude Code with that skill as")
 			fmt.Println("  the initial prompt.")
 			fmt.Println()
+			fmt.Println("Sort orders:")
+			fmt.Println("  alpha    name, A→Z (default)")
+			fmt.Println("  mtime    directory mod time, newest first")
+			fmt.Println("  recent   newest run.sh / SKILL.md inside, newest first")
+			fmt.Println()
 			fmt.Println("Environment:")
 			fmt.Println("  SKILLS_DIR   Root skills directory (default: ~/skills/skills)")
+			fmt.Println("  SKILL_SORT   Default sort order (overridden by --sort)")
 			os.Exit(0)
-		}
-		if arg == "--version" || arg == "-v" {
+		case arg == "--version" || arg == "-v":
 			dir, fromEnv := resolveSkillsDir()
 			source := "default"
 			if fromEnv {
@@ -171,11 +269,18 @@ func main() {
 			}
 			fmt.Printf("skill %s\n", version)
 			fmt.Println()
-			fmt.Println("Usage: skill [--help] [--version]")
+			fmt.Println("Usage: skill [--help] [--version] [--sort=<order>]")
 			fmt.Println("  Browse skill categories and launch Claude Code with the selected skill.")
 			fmt.Println()
 			fmt.Printf("Skills directory: %s (%s)\n", dir, source)
 			os.Exit(0)
+		case strings.HasPrefix(arg, "--sort="):
+			m, err := parseSortMode(strings.TrimPrefix(arg, "--sort="))
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(2)
+			}
+			mode = m
 		}
 	}
 
@@ -206,10 +311,14 @@ func main() {
 			}
 			skillDir := filepath.Join(subDir, sub.Name())
 			if hasRunnable(skillDir) {
-				categories = append(categories, item{
-					title: entry.Name(),
-					path:  subDir,
-				})
+				cat := item{title: entry.Name(), path: subDir}
+				switch mode {
+				case sortMtime:
+					cat.mtime = dirMtime(subDir)
+				case sortRecent:
+					cat.mtime = categoryRecentMtime(subDir)
+				}
+				categories = append(categories, cat)
 				break
 			}
 		}
@@ -219,6 +328,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "no skill categories found in", skillsDir)
 		os.Exit(1)
 	}
+
+	sortItems(categories, mode)
 
 	chosenCategory, ok := chooseFromList("Skill Category", categories)
 	if !ok {
@@ -244,16 +355,22 @@ func main() {
 			continue
 		}
 		displayName := strings.ReplaceAll(entry.Name(), "-", " ")
-		skills = append(skills, item{
-			title: displayName,
-			path:  skillDir,
-		})
+		sk := item{title: displayName, path: skillDir}
+		switch mode {
+		case sortMtime:
+			sk.mtime = dirMtime(skillDir)
+		case sortRecent:
+			sk.mtime = skillRecentMtime(skillDir)
+		}
+		skills = append(skills, sk)
 	}
 
 	if len(skills) == 0 {
 		fmt.Fprintln(os.Stderr, "no skills found in category", chosenCategory.title)
 		os.Exit(1)
 	}
+
+	sortItems(skills, mode)
 
 	chosenSkill, ok := chooseFromList("Select Skill — "+chosenCategory.title, skills)
 	if !ok {

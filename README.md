@@ -73,14 +73,34 @@ make install   # installs to ~/.local/bin/skill
 ## Usage
 
 ```
-skill [--help]
+skill [--help] [--version] [--list] [--sort=<order>]
 ```
+
+### Flags
+
+| Flag | Description |
+|---|---|
+| `--help`, `-h` | Show usage and exit |
+| `--version`, `-v` | Print version and the resolved skills directory |
+| `--list` | Print categories and their skill directories with each directory's mtime, then exit (no chooser, plain text) |
+| `--sort=<order>` | Order categories and skills; see *Sort orders* below |
+
+### Sort orders
+
+| Order | Behavior |
+|---|---|
+| `alpha` | Case-insensitive name, A→Z (default) |
+| `mtime` | Directory mod time, newest first |
+| `recent` | Newest `run.sh` / `SKILL.md` inside, newest first |
+
+`--sort` and `SKILL_SORT` apply to both the interactive chooser and `--list` output.
 
 ### Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
 | `SKILLS_DIR` | `~/skills/skills` | Path to the root skills directory |
+| `SKILL_SORT` | `alpha` | Default sort order; overridden by `--sort` |
 
 ## Skills directory layout
 

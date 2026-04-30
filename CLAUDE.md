@@ -46,6 +46,17 @@ See `skills/template.md` for the canonical template. Every skill file should hav
 - **Success Criteria** — how to verify the task completed correctly
 - **Notes** _(optional)_ — caveats, edge cases, related skills
 
+## Documentation
+
+When changing user-facing behavior of the `skill` CLI — new flags, new env vars, new output formats, or breaking changes — update `README.md` in the same PR. Before opening a PR that touches `main.go`, check that:
+
+- The **Usage** line reflects every supported flag
+- The **Flags** table lists any new/changed flag
+- The **Environment variables** table lists any new env var
+- New sort modes, list modes, or output formats have a row or section describing them
+
+If a `RUNBOOK.md` is ever added, apply the same rule to it.
+
 ## Session resume
 
 At the end of each session, `resume.sh` in the project root is automatically updated with the current session ID so the session can be resumed. The file looks like:

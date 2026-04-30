@@ -213,6 +213,42 @@ func categoryRecentMtime(categoryDir string) time.Time {
 	return newest
 }
 
+func printInventory(categories []item, mode sortMode) {
+	for i, cat := range categories {
+		if i > 0 {
+			fmt.Println()
+		}
+		fmt.Println(cat.title)
+		entries, err := os.ReadDir(cat.path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  error: %v\n", err)
+			continue
+		}
+		var skills []item
+		for _, e := range entries {
+			if !isDir(cat.path, e) || e.Name() == "archived" {
+				continue
+			}
+			skillDir := filepath.Join(cat.path, e.Name())
+			if !hasRunnable(skillDir) {
+				continue
+			}
+			sk := item{title: e.Name(), path: skillDir}
+			switch mode {
+			case sortMtime:
+				sk.mtime = dirMtime(skillDir)
+			case sortRecent:
+				sk.mtime = skillRecentMtime(skillDir)
+			}
+			skills = append(skills, sk)
+		}
+		sortItems(skills, mode)
+		for _, sk := range skills {
+			fmt.Printf("  %-32s  %s\n", sk.title, dirMtime(sk.path).Format("2006-01-02 15:04"))
+		}
+	}
+}
+
 func expandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
@@ -233,6 +269,7 @@ func resolveSkillsDir() (path string, fromEnv bool) {
 
 func main() {
 	mode := sortAlpha
+	listMode := false
 	if v := os.Getenv("SKILL_SORT"); v != "" {
 		m, err := parseSortMode(v)
 		if err != nil {
@@ -246,11 +283,15 @@ func main() {
 		case arg == "--help" || arg == "-h":
 			fmt.Println("skill — browse and launch skills via Claude Code")
 			fmt.Println()
-			fmt.Println("Usage: skill [--help] [--version] [--sort=<order>]")
+			fmt.Println("Usage: skill [--help] [--version] [--list] [--sort=<order>]")
 			fmt.Println()
 			fmt.Println("  Presents an interactive chooser to select a skill category,")
 			fmt.Println("  then a skill, then launches Claude Code with that skill as")
 			fmt.Println("  the initial prompt.")
+			fmt.Println()
+			fmt.Println("Flags:")
+			fmt.Println("  --list           Print skill directories and their mtimes, then exit")
+			fmt.Println("  --sort=<order>   Order categories and skills (see below)")
 			fmt.Println()
 			fmt.Println("Sort orders:")
 			fmt.Println("  alpha    name, A→Z (default)")
@@ -269,11 +310,13 @@ func main() {
 			}
 			fmt.Printf("skill %s\n", version)
 			fmt.Println()
-			fmt.Println("Usage: skill [--help] [--version] [--sort=<order>]")
+			fmt.Println("Usage: skill [--help] [--version] [--list] [--sort=<order>]")
 			fmt.Println("  Browse skill categories and launch Claude Code with the selected skill.")
 			fmt.Println()
 			fmt.Printf("Skills directory: %s (%s)\n", dir, source)
 			os.Exit(0)
+		case arg == "--list":
+			listMode = true
 		case strings.HasPrefix(arg, "--sort="):
 			m, err := parseSortMode(strings.TrimPrefix(arg, "--sort="))
 			if err != nil {
@@ -330,6 +373,11 @@ func main() {
 	}
 
 	sortItems(categories, mode)
+
+	if listMode {
+		printInventory(categories, mode)
+		return
+	}
 
 	chosenCategory, ok := chooseFromList("Skill Category", categories)
 	if !ok {

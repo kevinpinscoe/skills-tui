@@ -163,4 +163,5 @@ Note: `spctl --assess --type execute ~/.local/bin/skill` may still print `reject
 | `↑` / `↓` | Navigate |
 | `/` | Filter list |
 | `Enter` | Select |
-| `q` / `Esc` / `Ctrl+C` | Quit |
+| `←` / `Esc` / `q` | Go back to category list (from skill list) |
+| `Esc` / `q` / `Ctrl+C` | Quit (from category list) |

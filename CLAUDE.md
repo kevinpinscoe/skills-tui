@@ -71,20 +71,43 @@ This is handled by a Stop hook in Claude Code settings. Do not commit `resume.sh
 
 Always work on a feature branch — never commit directly to `main`. Branch names must follow the pattern `claude/<feature-request>`. Before starting any task, ask the human what to name the `<feature-request>` portion.
 
-## Release tagging
+## Post-merge workflow
 
-**After every code change is merged to `main`, you must tag the build and push the tag to trigger a release.**
+After a PR is merged into `main`, always execute these steps in order:
 
-Steps:
+### 1. Switch to main and pull
+```
+git checkout main
+git pull
+```
+
+### 2. Delete the feature branch (local and remote)
+```
+git branch -d <branch-name>
+git push origin --delete <branch-name>
+```
+
+### 3. Tag the release from main only
+**Always tag from `main` — never from a feature branch.**
+
 1. Determine the current latest tag: `git tag --sort=-v:refname | head -1`
 2. Increment the appropriate version segment (patch for bug fixes, minor for new features, major for breaking changes)
-3. Create and push the tag:
+3. Create and push the annotated tag:
    ```
-   git tag v<X.Y.Z>
+   git tag -a v<X.Y.Z> -m "v<X.Y.Z>"
    git push origin v<X.Y.Z>
    ```
 
-Remind the human if they have not tagged after merging a PR.
+### 4. Install the release locally
+After the GitHub release is published and the binary is available, install it to `~/.local/bin/skill`:
+```
+gh release download v<X.Y.Z> --pattern 'skill_*_darwin_arm64*' --output /tmp/skill.tar.gz
+tar -xzf /tmp/skill.tar.gz -C /tmp
+mv /tmp/skill ~/.local/bin/skill
+chmod +x ~/.local/bin/skill
+```
+
+Remind the human if any of these steps are skipped after a merge.
 
 ## GitHub branch protection
 

@@ -71,6 +71,21 @@ This is handled by a Stop hook in Claude Code settings. Do not commit `resume.sh
 
 Always work on a feature branch — never commit directly to `main`. Branch names must follow the pattern `claude/<feature-request>`. Before starting any task, ask the human what to name the `<feature-request>` portion.
 
+## Release tagging
+
+**After every code change is merged to `main`, you must tag the build and push the tag to trigger a release.**
+
+Steps:
+1. Determine the current latest tag: `git tag --sort=-v:refname | head -1`
+2. Increment the appropriate version segment (patch for bug fixes, minor for new features, major for breaking changes)
+3. Create and push the tag:
+   ```
+   git tag v<X.Y.Z>
+   git push origin v<X.Y.Z>
+   ```
+
+Remind the human if they have not tagged after merging a PR.
+
 ## GitHub branch protection
 
 The `main` branch is protected by a **branch ruleset** with these settings:

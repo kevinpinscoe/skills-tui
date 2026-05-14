@@ -61,10 +61,21 @@ func (i item) Title() string       { return i.title }
 func (i item) Description() string { return i.path }
 func (i item) FilterValue() string { return i.title }
 
+type appState int
+
+const (
+	stateCategory appState = iota
+	stateSkill
+)
+
 type model struct {
-	list     list.Model
-	choice   item
-	quitting bool
+	appState       appState
+	categoryList   list.Model
+	skillList      list.Model
+	chosenCategory item
+	chosenSkill    item
+	sortMode       sortMode
+	quitting       bool
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -73,60 +84,132 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q", "esc":
+		case "ctrl+c":
 			m.quitting = true
 			return m, tea.Quit
-		case "enter":
-			if i, ok := m.list.SelectedItem().(item); ok {
-				m.choice = i
+		case "q", "esc":
+			if m.appState == stateSkill && m.skillList.FilterState() == list.Unfiltered {
+				m.appState = stateCategory
+				return m, nil
 			}
-			return m, tea.Quit
+			if m.appState == stateCategory {
+				m.quitting = true
+				return m, tea.Quit
+			}
+		case "left":
+			if m.appState == stateSkill && m.skillList.FilterState() == list.Unfiltered {
+				m.appState = stateCategory
+				return m, nil
+			}
+		case "enter":
+			switch m.appState {
+			case stateCategory:
+				if i, ok := m.categoryList.SelectedItem().(item); ok {
+					skills, err := loadSkillItems(i.path, m.sortMode)
+					if err != nil || len(skills) == 0 {
+						return m, nil
+					}
+					m.chosenCategory = i
+					m.skillList = newList("Select Skill — "+i.title, skills)
+					m.appState = stateSkill
+				}
+				return m, nil
+			case stateSkill:
+				if i, ok := m.skillList.SelectedItem().(item); ok {
+					m.chosenSkill = i
+				}
+				return m, tea.Quit
+			}
 		}
 	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
+		m.categoryList.SetWidth(msg.Width)
+		m.skillList.SetWidth(msg.Width)
 		return m, nil
 	}
 
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	switch m.appState {
+	case stateCategory:
+		m.categoryList, cmd = m.categoryList.Update(msg)
+	case stateSkill:
+		m.skillList, cmd = m.skillList.Update(msg)
+	}
 	return m, cmd
 }
 
 func (m model) View() string {
-	if m.choice.path != "" || m.quitting {
+	if m.quitting || m.chosenSkill.path != "" {
 		return ""
 	}
-	return "\n" + m.list.View()
+	switch m.appState {
+	case stateCategory:
+		return "\n" + m.categoryList.View()
+	case stateSkill:
+		return "\n" + m.skillList.View()
+	}
+	return ""
 }
 
-func chooseFromList(title string, items []item) (item, bool) {
+func newList(title string, items []item) list.Model {
 	listItems := make([]list.Item, len(items))
 	for i, it := range items {
 		listItems[i] = it
 	}
-
 	delegate := list.NewDefaultDelegate()
 	delegate.ShowDescription = false
-
 	l := list.New(listItems, delegate, 60, 16)
 	l.Title = title
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(true)
 	l.Styles.Title = titleStyle
+	return l
+}
 
-	m := model{list: l}
+func loadSkillItems(categoryPath string, mode sortMode) ([]item, error) {
+	entries, err := os.ReadDir(categoryPath)
+	if err != nil {
+		return nil, err
+	}
+	var skills []item
+	for _, entry := range entries {
+		if !isDir(categoryPath, entry) || entry.Name() == "archived" {
+			continue
+		}
+		skillDir := filepath.Join(categoryPath, entry.Name())
+		if !hasRunnable(skillDir) {
+			continue
+		}
+		sk := item{title: strings.ReplaceAll(entry.Name(), "-", " "), path: skillDir}
+		switch mode {
+		case sortMtime:
+			sk.mtime = dirMtime(skillDir)
+		case sortRecent:
+			sk.mtime = skillRecentMtime(skillDir)
+		}
+		skills = append(skills, sk)
+	}
+	sortItems(skills, mode)
+	return skills, nil
+}
+
+func runChooser(categories []item, mode sortMode) (item, bool) {
+	m := model{
+		appState:     stateCategory,
+		categoryList: newList("Skill Category", categories),
+		skillList:    newList("", nil),
+		sortMode:     mode,
+	}
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	result, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "chooser error:", err)
 		os.Exit(1)
 	}
-
 	final := result.(model)
-	if final.quitting {
+	if final.quitting || final.chosenSkill.path == "" {
 		return item{}, false
 	}
-	return final.choice, true
+	return final.chosenSkill, true
 }
 
 func stripFrontmatter(content []byte) []byte {
@@ -379,48 +462,7 @@ func main() {
 		return
 	}
 
-	chosenCategory, ok := chooseFromList("Skill Category", categories)
-	if !ok {
-		os.Exit(0)
-	}
-
-	subEntries, err := os.ReadDir(chosenCategory.path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading category directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	var skills []item
-	for _, entry := range subEntries {
-		if !isDir(chosenCategory.path, entry) {
-			continue
-		}
-		if entry.Name() == "archived" {
-			continue
-		}
-		skillDir := filepath.Join(chosenCategory.path, entry.Name())
-		if !hasRunnable(skillDir) {
-			continue
-		}
-		displayName := strings.ReplaceAll(entry.Name(), "-", " ")
-		sk := item{title: displayName, path: skillDir}
-		switch mode {
-		case sortMtime:
-			sk.mtime = dirMtime(skillDir)
-		case sortRecent:
-			sk.mtime = skillRecentMtime(skillDir)
-		}
-		skills = append(skills, sk)
-	}
-
-	if len(skills) == 0 {
-		fmt.Fprintln(os.Stderr, "no skills found in category", chosenCategory.title)
-		os.Exit(1)
-	}
-
-	sortItems(skills, mode)
-
-	chosenSkill, ok := chooseFromList("Select Skill — "+chosenCategory.title, skills)
+	chosenSkill, ok := runChooser(categories, mode)
 	if !ok {
 		os.Exit(0)
 	}

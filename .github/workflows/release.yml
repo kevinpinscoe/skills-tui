@@ -11,6 +11,7 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -38,6 +39,16 @@ jobs:
           shasum -a 256 skill-linux-amd64 skill-darwin-arm64 skill-linux-arm64 > checksums.txt
           echo "${{ github.sha }}" > commit.txt
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign release checksums
+        run: |
+          cosign sign-blob --yes \
+            --output-signature dist/checksums.txt.sig \
+            --output-certificate dist/checksums.txt.pem \
+            dist/checksums.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -48,4 +59,6 @@ jobs:
             dist/skill-darwin-arm64
             dist/skill-linux-arm64
             dist/checksums.txt
+            dist/checksums.txt.sig
+            dist/checksums.txt.pem
             dist/commit.txt

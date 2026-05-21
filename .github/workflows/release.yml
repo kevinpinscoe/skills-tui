@@ -5,60 +5,29 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
+permissions:
+  contents: write
+  id-token: write   # required for Sigstore OIDC
+
 jobs:
-  build:
-    name: Build and Release
-    runs-on: macos-latest
-    permissions:
-      contents: write
-      id-token: write
-
+  release:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
 
-      - name: Build binaries
-        run: |
-          mkdir -p dist
-          LDFLAGS="-s -w -X main.version=${GITHUB_REF_NAME}"
-          GOOS=linux  GOARCH=amd64  go build -ldflags="$LDFLAGS" -o dist/skill-linux-amd64   .
-          GOOS=darwin GOARCH=arm64  go build -ldflags="$LDFLAGS" -o dist/skill-darwin-arm64  .
-          GOOS=linux  GOARCH=arm64  go build -ldflags="$LDFLAGS" -o dist/skill-linux-arm64   .
+      - uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
 
-      - name: Sign macOS binary
-        run: codesign --sign - dist/skill-darwin-arm64
-
-      - name: Generate checksums and commit reference
-        run: |
-          cd dist
-          shasum -a 256 skill-linux-amd64 skill-darwin-arm64 skill-linux-arm64 > checksums.txt
-          echo "${{ github.sha }}" > commit.txt
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3
-
-      - name: Sign release checksums
-        run: |
-          cosign sign-blob --yes \
-            --output-signature dist/checksums.txt.sig \
-            --output-certificate dist/checksums.txt.pem \
-            dist/checksums.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      - uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6.1.0
         with:
-          make_latest: true
-          generate_release_notes: true
-          files: |
-            dist/skill-linux-amd64
-            dist/skill-darwin-arm64
-            dist/skill-linux-arm64
-            dist/checksums.txt
-            dist/checksums.txt.sig
-            dist/checksums.txt.pem
-            dist/commit.txt
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COSIGN_EXPERIMENTAL: "1"

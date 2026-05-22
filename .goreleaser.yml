@@ -21,6 +21,19 @@ archives:
     name_template: "skill-{{ .Os }}-{{ .Arch }}"
     format: binary
 
+
+nfpms:
+  - id: skills-tui-packages
+    package_name: skills-tui
+    vendor: Kevin P. Inscoe
+    homepage: https://github.com/kevinpinscoe/skills-tui
+    maintainer: Kevin P. Inscoe <kevin.inscoe@gmail.com>
+    description: Interactive TUI skill chooser
+    license: MIT
+    formats: [deb, rpm]
+    bindir: /usr/bin
+    builds: [skill]
+
 checksum:
   name_template: "checksums.txt"
 

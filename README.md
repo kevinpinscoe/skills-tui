@@ -23,6 +23,13 @@ See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/ski
 
 ### Package managers
 
+#### Homebrew (macOS/Linux)
+
+```bash
+brew tap kevinpinscoe/homebrew-tap
+brew install skills-tui
+```
+
 #### APT (Debian/Ubuntu)
 
 ```bash

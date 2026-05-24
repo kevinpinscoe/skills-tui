@@ -34,6 +34,19 @@ nfpms:
     bindir: /usr/bin
     builds: [skill]
 
+brews:
+  - name: skills-tui
+    repository:
+      owner: kevinpinscoe
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/kevinpinscoe/skills-tui
+    description: Interactive TUI skill chooser
+    license: MIT
+    test: |
+      system "#{bin}/skill", "--help"
+
 checksum:
   name_template: "checksums.txt"
 

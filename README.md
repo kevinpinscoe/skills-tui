@@ -21,6 +21,30 @@ See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/ski
 
 ## Installation
 
+### Package managers
+
+#### APT (Debian/Ubuntu)
+
+```bash
+curl -sL https://kevinpinscoe.github.io/apt/gpg.key \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/kevinpinscoe.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kevinpinscoe.gpg] \
+  https://kevinpinscoe.github.io/apt stable main" \
+  | sudo tee /etc/apt/sources.list.d/kevinpinscoe.list
+
+sudo apt update
+sudo apt install skills-tui
+```
+
+#### DNF (Fedora/RHEL)
+
+```bash
+sudo curl -fsSL https://kevinpinscoe.github.io/rpm/kevinpinscoe.repo \
+  -o /etc/yum.repos.d/kevinpinscoe.repo
+sudo dnf install skills-tui
+```
+
 ### Download a pre-built binary
 
 Grab the latest release for your platform from the [Releases](https://github.com/kevinpinscoe/skills-tui/releases) page:

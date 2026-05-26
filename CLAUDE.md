@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-`skill` Go CLI used to browse skills written in Markdown and execute them via Claude Code.
+`skills` Go CLI used to browse skills written in Markdown and execute them via Claude Code.
 
 ## What this is
 
@@ -48,7 +48,7 @@ See `skills/template.md` for the canonical template. Every skill file should hav
 
 ## Documentation
 
-When changing user-facing behavior of the `skill` CLI — new flags, new env vars, new output formats, or breaking changes — update `README.md` in the same PR. Before opening a PR that touches `main.go`, check that:
+When changing user-facing behavior of the `skills` CLI — new flags, new env vars, new output formats, or breaking changes — update `README.md` in the same PR. Before opening a PR that touches `main.go`, check that:
 
 - The **Usage** line reflects every supported flag
 - The **Flags** table lists any new/changed flag
@@ -99,12 +99,12 @@ git push origin --delete <branch-name>
    ```
 
 ### 4. Install the release locally
-After the GitHub release is published and the binary is available, install it to `~/.local/bin/skill`:
+After the GitHub release is published and the binary is available, install it to `~/.local/bin/skills`:
 ```
-gh release download v<X.Y.Z> --pattern 'skill_*_darwin_arm64*' --output /tmp/skill.tar.gz
-tar -xzf /tmp/skill.tar.gz -C /tmp
-mv /tmp/skill ~/.local/bin/skill
-chmod +x ~/.local/bin/skill
+gh release download v<X.Y.Z> --pattern 'skills_*_darwin_arm64*' --output /tmp/skills.tar.gz
+tar -xzf /tmp/skills.tar.gz -C /tmp
+mv /tmp/skills ~/.local/bin/skills
+chmod +x ~/.local/bin/skills
 ```
 
 Remind the human if any of these steps are skipped after a merge.

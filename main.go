@@ -364,9 +364,9 @@ func main() {
 	for _, arg := range os.Args[1:] {
 		switch {
 		case arg == "--help" || arg == "-h":
-			fmt.Println("skill — browse and launch skills via Claude Code")
+			fmt.Println("skills — browse and launch skills via Claude Code")
 			fmt.Println()
-			fmt.Println("Usage: skill [--help] [--version] [--list] [--sort=<order>]")
+			fmt.Println("Usage: skills [--help] [--version] [--list] [--sort=<order>]")
 			fmt.Println()
 			fmt.Println("  Presents an interactive chooser to select a skill category,")
 			fmt.Println("  then a skill, then launches Claude Code with that skill as")
@@ -391,9 +391,9 @@ func main() {
 			if fromEnv {
 				source = "SKILLS_DIR"
 			}
-			fmt.Printf("skill %s\n", version)
+			fmt.Printf("skills %s\n", version)
 			fmt.Println()
-			fmt.Println("Usage: skill [--help] [--version] [--list] [--sort=<order>]")
+			fmt.Println("Usage: skills [--help] [--version] [--list] [--sort=<order>]")
 			fmt.Println("  Browse skill categories and launch Claude Code with the selected skill.")
 			fmt.Println()
 			fmt.Printf("Skills directory: %s (%s)\n", dir, source)

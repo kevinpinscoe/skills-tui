@@ -4,12 +4,12 @@ A terminal UI for browsing and launching [Claude Code](https://claude.ai/code) s
 
 ## What it does
 
-`skill` presents an interactive two-level chooser:
+`skills` presents an interactive two-level chooser:
 
 1. Pick a **category** (subdirectory of your skills directory)
 2. Pick a **skill** (subdirectory containing either a `run.sh` script or a `SKILL.md` file)
 3. Confirm, and the skill runs:
-   - If the skill directory contains a `run.sh`, `skill` changes into that directory and executes `run.sh` as a shell script (stdin is wired through, so the script can prompt for input).
+   - If the skill directory contains a `run.sh`, `skills` changes into that directory and executes `run.sh` as a shell script (stdin is wired through, so the script can prompt for input).
    - Otherwise, Claude Code is launched with the contents of `SKILL.md` as the prompt.
 
 ## Prerequisites
@@ -58,39 +58,39 @@ Grab the latest release for your platform from the [Releases](https://github.com
 
 | Platform | Binary |
 |---|---|
-| Linux x86-64 | `skill-linux-amd64` |
-| macOS Apple Silicon | `skill-darwin-arm64` |
-| Raspberry Pi (64-bit) | `skill-linux-arm64` |
+| Linux x86-64 | `skills-linux-amd64` |
+| macOS Apple Silicon | `skills-darwin-arm64` |
+| Raspberry Pi (64-bit) | `skills-linux-arm64` |
 
 Each release includes a `checksums.txt` (SHA-256) and a `commit.txt` recording the exact git commit the binaries were built from.
 
 ```bash
 # Linux x86-64
-BINARY=skill-linux-amd64
+BINARY=skills-linux-amd64
 
 # macOS Apple Silicon
-BINARY=skill-darwin-arm64
+BINARY=skills-darwin-arm64
 
 # Raspberry Pi 64-bit
-BINARY=skill-linux-arm64
+BINARY=skills-linux-arm64
 ```
 
 ```bash
 BASE=https://github.com/kevinpinscoe/skills-tui/releases/latest/download
 
 # Download the binary and verification files
-curl -fsSL "$BASE/$BINARY"       -o ~/.local/bin/skill
-curl -fsSL "$BASE/checksums.txt" -o /tmp/skill-checksums.txt
-curl -fsSL "$BASE/commit.txt"    -o /tmp/skill-commit.txt
+curl -fsSL "$BASE/$BINARY"       -o ~/.local/bin/skills
+curl -fsSL "$BASE/checksums.txt" -o /tmp/skills-checksums.txt
+curl -fsSL "$BASE/commit.txt"    -o /tmp/skills-commit.txt
 
 # Verify the checksum
-echo "$(grep "$BINARY" /tmp/skill-checksums.txt | awk '{print $1}')  $HOME/.local/bin/skill" \
+echo "$(grep "$BINARY" /tmp/skills-checksums.txt | awk '{print $1}')  $HOME/.local/bin/skills" \
   | shasum -a 256 --check
 
 # Confirm the source commit (optional — cross-reference with GitHub)
-cat /tmp/skill-commit.txt
+cat /tmp/skills-commit.txt
 
-chmod +x ~/.local/bin/skill
+chmod +x ~/.local/bin/skills
 ```
 
 ### Build from source
@@ -98,13 +98,13 @@ chmod +x ~/.local/bin/skill
 ```bash
 git clone https://github.com/kevinpinscoe/skills-tui.git
 cd skills-tui
-make install   # installs to ~/.local/bin/skill
+make install   # installs to ~/.local/bin/skills
 ```
 
 ## Usage
 
 ```
-skill [--help] [--version] [--list] [--sort=<order>]
+skills [--help] [--version] [--list] [--sort=<order>]
 ```
 
 ### Flags
@@ -137,7 +137,7 @@ skill [--help] [--version] [--list] [--sort=<order>]
 
 ```
 ~/.local/bin/
-└── skill              # this binary
+└── skills             # this binary
 
 ~/skills/
 └── skills/
@@ -163,29 +163,29 @@ Example skill files and a ready-to-use skills repository can be found at [https:
 
 ## macOS Gatekeeper
 
-Binaries downloaded from the internet are subject to macOS Gatekeeper. Starting with the release that includes ad-hoc signing, the `skill-darwin-arm64` binary is signed with `codesign --sign -` during the release build, which satisfies Gatekeeper for locally-run binaries without requiring an Apple Developer account.
+Binaries downloaded from the internet are subject to macOS Gatekeeper. Starting with the release that includes ad-hoc signing, the `skills-darwin-arm64` binary is signed with `codesign --sign -` during the release build, which satisfies Gatekeeper for locally-run binaries without requiring an Apple Developer account.
 
 If the binary is killed immediately on launch (exit code 137 / SIGKILL), Gatekeeper has rejected the signature on a downloaded file. Two attributes can cause this:
 
 - **`com.apple.quarantine`** — set when a browser downloads the file. Strip it with:
 
   ```bash
-  xattr -d com.apple.quarantine ~/.local/bin/skill
+  xattr -d com.apple.quarantine ~/.local/bin/skills
   ```
 
 - **`com.apple.provenance`** — set on macOS 14+ for files downloaded by `curl`. It is a protected attribute and **cannot be removed with `xattr`**. Re-sign the binary locally instead, which makes Gatekeeper trust your local ad-hoc signature:
 
   ```bash
-  codesign --force --sign - ~/.local/bin/skill
+  codesign --force --sign - ~/.local/bin/skills
   ```
 
 Or, to manually ad-hoc sign a binary you built from source:
 
 ```bash
-codesign --sign - ~/.local/bin/skill
+codesign --sign - ~/.local/bin/skills
 ```
 
-Note: `spctl --assess --type execute ~/.local/bin/skill` may still print `rejected` for ad-hoc-signed binaries even after the workarounds above. That is `spctl`'s static assessment, not the actual execution gate — if `skill --version` runs successfully, the binary is fine.
+Note: `spctl --assess --type execute ~/.local/bin/skills` may still print `rejected` for ad-hoc-signed binaries even after the workarounds above. That is `spctl`'s static assessment, not the actual execution gate — if `skills --version` runs successfully, the binary is fine.
 
 ## Keyboard shortcuts
 

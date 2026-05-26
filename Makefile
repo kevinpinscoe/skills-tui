@@ -1,4 +1,4 @@
-BINARY      := ./skill
+BINARY      := ./skills
 INSTALL_DIR := $(HOME)/.local/bin
 SRC         := ./
 VERSION     := $(shell git describe --tags --dirty --always 2>/dev/null || echo dev)
@@ -11,7 +11,7 @@ build: tidy
 
 install: build
 	mkdir -p $(INSTALL_DIR)
-	cp $(BINARY) $(INSTALL_DIR)/skill
+	cp $(BINARY) $(INSTALL_DIR)/skills
 
 
 tidy:

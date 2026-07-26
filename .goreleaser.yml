@@ -17,9 +17,9 @@ builds:
 
 archives:
   - id: skills-archive
-    builds: [skills]
+    ids: [skills]
     name_template: "skills-{{ .Os }}-{{ .Arch }}"
-    format: binary
+    formats: [binary]
 
 
 nfpms:
@@ -32,7 +32,7 @@ nfpms:
     license: MIT
     formats: [deb, rpm]
     bindir: /usr/bin
-    builds: [skills]
+    ids: [skills]
 
 brews:
   - name: skills-tui

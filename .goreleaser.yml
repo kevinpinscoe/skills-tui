@@ -34,18 +34,22 @@ nfpms:
     bindir: /usr/bin
     ids: [skills]
 
-brews:
+# `brews:` was deprecated in GoReleaser v2.10 and is slated for removal in
+# v2.16. Casks cover Linux as well as macOS since Homebrew/brew#19121 added
+# Linux binary support, so nothing is lost by moving off the formula.
+# There is no cask equivalent of a formula `test do` block.
+# The cask is named for the repo; the binary it installs is `skills`.
+homebrew_casks:
   - name: skills-tui
+    binaries: [skills]      # `binary:` is deprecated (GoReleaser v2.12.6)
     repository:
       owner: kevinpinscoe
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
+    directory: Casks
     homepage: https://github.com/kevinpinscoe/skills-tui
     description: Interactive TUI skill chooser
     license: MIT
-    test: |
-      system "#{bin}/skills", "--help"
 
 checksum:
   name_template: "checksums.txt"

@@ -27,7 +27,15 @@ See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/ski
 
 ```bash
 brew tap kevinpinscoe/homebrew-tap
-brew install skills-tui
+brew install --cask skills-tui
+```
+
+Upgrading from a release before v3.0.1? This tool shipped as a formula until
+then. Remove the old one first — a formula and a cask of the same name cannot
+coexist:
+
+```bash
+brew uninstall skills-tui
 ```
 
 #### APT (Debian/Ubuntu)

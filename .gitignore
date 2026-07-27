@@ -57,3 +57,12 @@ playbook.drafts/.obsidian/plugins/recent-notes/data.json
 **/*.pyc
 **/*.pyo
 **/__pycache__/
+
+# Required by ~/ai/directives/gitignore.md — the path-prefixed entries above
+# were copy-pasted from another repo and do not match at this repo's root.
+**/resume.sh
+**/resume.txt
+**/.DS_Store
+**/.claude
+**/.codex
+**/.trash/

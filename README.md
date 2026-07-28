@@ -204,3 +204,13 @@ Note: `spctl --assess --type execute ~/.local/bin/skills` may still print `rejec
 | `Enter` | Select |
 | `←` / `Esc` / `q` | Go back to category list (from skill list) |
 | `Esc` / `q` / `Ctrl+C` | Quit (from category list) |
+
+## Security
+
+Release artifacts are cosign-signed and each release publishes an SPDX SBOM.
+See [SECURITY.md](SECURITY.md) for verification steps and how to report a
+vulnerability.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

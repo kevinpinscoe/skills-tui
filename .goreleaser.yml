@@ -51,6 +51,13 @@ homebrew_casks:
     description: Interactive TUI skill chooser
     license: MIT
 
+sboms:
+  # Cataloguing the compiled binary rather than the source tree: syft reads the
+  # Go build info baked into it, so the SBOM lists what actually shipped.
+  # SBOMs land in checksums.txt, so the existing cosign signature covers them.
+  - id: skills-tui-sbom
+    artifacts: binary
+
 checksum:
   name_template: "checksums.txt"
 

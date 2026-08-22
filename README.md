@@ -6,8 +6,8 @@ A terminal UI for browsing and launching [Claude Code](https://claude.ai/code) s
 
 `skills` presents an interactive two-level chooser:
 
-1. Pick a **category** (subdirectory of your skills directory)
-2. Pick a **skill** (subdirectory containing either a `run.sh` script or a `SKILL.md` file)
+1. Pick a **category** — synthesized from each skill's `SKILL.md` `category:` frontmatter field, not a directory (a skill with no `category:` groups under `uncategorized`)
+2. Pick a **skill** (a subdirectory of your skills directory containing either a `run.sh` script or a `SKILL.md` file)
 3. Confirm, and the skill runs:
    - If the skill directory contains a `run.sh`, `skills` changes into that directory and executes `run.sh` as a shell script (stdin is wired through, so the script can prompt for input).
    - Otherwise, Claude Code is launched with the contents of `SKILL.md` as the prompt.
@@ -15,7 +15,7 @@ A terminal UI for browsing and launching [Claude Code](https://claude.ai/code) s
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) CLI (`claude`) installed and on your `PATH`
-- A skills directory (default: `~/skills/skills`) containing category subdirectories with skill subdirectories. Each skill subdirectory must contain either a `run.sh` script or a `SKILL.md` file (or both — `run.sh` takes precedence).
+- A skills directory (default: `~/.claude/skills` — Claude Code's own skill path) containing skill subdirectories, flat, one level deep. Each skill subdirectory must contain either a `run.sh` script or a `SKILL.md` file (or both — `run.sh` takes precedence). An entry matched by the skills directory's own `.gitignore` is excluded from the chooser — this is how third-party content installed into the same directory (e.g. a Claude Code plugin's own skills) stays out of the list without `skills` needing to know anything about where it came from.
 
 See [https://github.com/kevinpinscoe/skills](https://github.com/kevinpinscoe/skills) for an example skills repository.
 
@@ -138,7 +138,7 @@ skills [--help] [--version] [--list] [--sort=<order>]
 
 | Variable | Default | Description |
 |---|---|---|
-| `SKILLS_DIR` | `~/skills/skills` | Path to the root skills directory |
+| `SKILLS_DIR` | `~/.claude/skills` | Path to the root skills directory |
 | `SKILL_SORT` | `alpha` | Default sort order; overridden by `--sort` |
 
 ## Skills directory layout
@@ -147,21 +147,20 @@ skills [--help] [--version] [--list] [--sort=<order>]
 ~/.local/bin/
 └── skills             # this binary
 
-~/skills/
-└── skills/
-    ├── aws/
-    │   └── deploy/
-    │       └── SKILL.md
-    ├── backup/
-    │   └── snapshot/
-    │       └── SKILL.md
-    └── YouTrack/
-        └── create-ticket/
-            ├── run.sh
-            └── create-ticket.py
+~/.claude/skills/
+├── .gitignore          # excludes anything not owned by your skills repo
+├── aws-deploy/
+│   └── SKILL.md         # category: aws
+├── backup-snapshot/
+│   └── SKILL.md         # category: backup
+└── youtrack-create-ticket/
+    ├── run.sh            # category: youtrack
+    └── create-ticket.py
 ```
 
-Skills are three levels deep: **category directory** → **skill directory** → **`run.sh` or `SKILL.md`**.
+Skills are flat, one level deep: **skill directory** → **`run.sh` or `SKILL.md`**. There is no
+category directory — a skill's category comes from a `category:` field in its `SKILL.md`
+frontmatter, which `skills` reads to build the first-level chooser.
 
 When a skill uses `run.sh`, the script is executed with its directory as the working directory, so it can reference co-located files (e.g. `./create-ticket.py`) by relative path.
 

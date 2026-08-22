@@ -18,10 +18,13 @@ var version = "dev"
 
 var titleStyle = lipgloss.NewStyle().MarginLeft(2)
 
+const uncategorized = "uncategorized"
+
 type item struct {
-	title string
-	path  string
-	mtime time.Time
+	title    string
+	path     string
+	category string // for a skill item: its category. For a synthesized category item: the category key itself.
+	mtime    time.Time
 }
 
 type sortMode int
@@ -72,6 +75,7 @@ type model struct {
 	appState       appState
 	categoryList   list.Model
 	skillList      list.Model
+	allSkills      []item
 	chosenCategory item
 	chosenSkill    item
 	sortMode       sortMode
@@ -105,8 +109,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.appState {
 			case stateCategory:
 				if i, ok := m.categoryList.SelectedItem().(item); ok {
-					skills, err := loadSkillItems(i.path, m.sortMode)
-					if err != nil || len(skills) == 0 {
+					skills := skillsInCategory(m.allSkills, i.category, m.sortMode)
+					if len(skills) == 0 {
 						return m, nil
 					}
 					m.chosenCategory = i
@@ -165,21 +169,49 @@ func newList(title string, items []item) list.Model {
 	return l
 }
 
-func loadSkillItems(categoryPath string, mode sortMode) ([]item, error) {
-	entries, err := os.ReadDir(categoryPath)
+// skillsInCategory filters the already-loaded flat skill list down to one
+// category, sorted per mode. No disk access — the category level is
+// synthesized from SKILL.md frontmatter, not a real directory.
+func skillsInCategory(all []item, category string, mode sortMode) []item {
+	var skills []item
+	for _, sk := range all {
+		if sk.category == category {
+			skills = append(skills, sk)
+		}
+	}
+	sortItems(skills, mode)
+	return skills
+}
+
+// loadSkills walks SKILLS_DIR one level deep (Claude Code's own flat skill
+// layout: skill-name/SKILL.md) and returns every entry that looks like a
+// skill and isn't excluded by <skillsDir>/.gitignore. Replaces the old
+// two-level category/skill walk and its several hand-duplicated copies.
+func loadSkills(skillsDir string, mode sortMode) ([]item, error) {
+	entries, err := os.ReadDir(skillsDir)
 	if err != nil {
 		return nil, err
 	}
+	patterns := loadIgnorePatterns(skillsDir)
+
 	var skills []item
 	for _, entry := range entries {
-		if !isDir(categoryPath, entry) || entry.Name() == "archived" {
+		name := entry.Name()
+		if !isDir(skillsDir, entry) || name == "archived" {
 			continue
 		}
-		skillDir := filepath.Join(categoryPath, entry.Name())
+		if isIgnored(name, patterns) {
+			continue
+		}
+		skillDir := filepath.Join(skillsDir, name)
 		if !hasRunnable(skillDir) {
 			continue
 		}
-		sk := item{title: strings.ReplaceAll(entry.Name(), "-", " "), path: skillDir}
+		sk := item{
+			title:    strings.ReplaceAll(name, "-", " "),
+			path:     skillDir,
+			category: readCategory(skillDir),
+		}
 		switch mode {
 		case sortMtime:
 			sk.mtime = dirMtime(skillDir)
@@ -188,15 +220,40 @@ func loadSkillItems(categoryPath string, mode sortMode) ([]item, error) {
 		}
 		skills = append(skills, sk)
 	}
-	sortItems(skills, mode)
 	return skills, nil
 }
 
-func runChooser(categories []item, mode sortMode) (item, bool) {
+// groupByCategory synthesizes the category-chooser's first-level list from
+// each skill's already-loaded category field — never from a directory, since
+// there isn't one. A skill with no category: frontmatter groups under the
+// literal "uncategorized" bucket rather than being dropped or erroring.
+func groupByCategory(skills []item, mode sortMode) []item {
+	order := []string{}
+	seen := map[string]bool{}
+	newest := map[string]time.Time{}
+	for _, sk := range skills {
+		if !seen[sk.category] {
+			seen[sk.category] = true
+			order = append(order, sk.category)
+		}
+		if sk.mtime.After(newest[sk.category]) {
+			newest[sk.category] = sk.mtime
+		}
+	}
+	categories := make([]item, 0, len(order))
+	for _, cat := range order {
+		categories = append(categories, item{title: cat, path: cat, category: cat, mtime: newest[cat]})
+	}
+	sortItems(categories, mode)
+	return categories
+}
+
+func runChooser(categories []item, allSkills []item, mode sortMode) (item, bool) {
 	m := model{
 		appState:     stateCategory,
 		categoryList: newList("Skill Category", categories),
 		skillList:    newList("", nil),
+		allSkills:    allSkills,
 		sortMode:     mode,
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen())
@@ -223,6 +280,78 @@ func stripFrontmatter(content []byte) []byte {
 	}
 	rest := s[3+end+4:] // skip opening ---, content, and closing ---
 	return []byte(strings.TrimLeft(rest, "\n"))
+}
+
+// frontmatterField returns the value of a top-level "field: value" line
+// inside a SKILL.md's YAML frontmatter block, or "" if the file, the
+// frontmatter block, or the field is absent. A hand-written line scan is
+// enough for the one field this tool reads — not a general YAML parser.
+func frontmatterField(skillMD string, field string) string {
+	content, err := os.ReadFile(skillMD)
+	if err != nil {
+		return ""
+	}
+	s := string(content)
+	if !strings.HasPrefix(s, "---") {
+		return ""
+	}
+	end := strings.Index(s[3:], "\n---")
+	if end == -1 {
+		return ""
+	}
+	block := s[3 : 3+end]
+	prefix := field + ":"
+	for _, line := range strings.Split(block, "\n") {
+		if strings.HasPrefix(line, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		}
+	}
+	return ""
+}
+
+// readCategory returns a skill directory's category: frontmatter value,
+// falling back to the literal "uncategorized" bucket when the SKILL.md is
+// missing the field (or there is no SKILL.md, only a run.sh).
+func readCategory(skillDir string) string {
+	if v := frontmatterField(filepath.Join(skillDir, "SKILL.md"), "category"); v != "" {
+		return v
+	}
+	return uncategorized
+}
+
+// loadIgnorePatterns reads <skillsDir>/.gitignore, if present, into a small
+// set of glob patterns matched against top-level entry names. This is
+// deliberately not a full gitignore engine — SKILLS_DIR is flat (one level),
+// so there is nothing nested to match against, and negation (!pattern) is
+// out of scope until a real need for it shows up.
+func loadIgnorePatterns(skillsDir string) []string {
+	content, err := os.ReadFile(filepath.Join(skillsDir, ".gitignore"))
+	if err != nil {
+		return nil
+	}
+	var patterns []string
+	for _, line := range strings.Split(string(content), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "**/")
+		line = strings.TrimSuffix(line, "/")
+		if line == "" {
+			continue
+		}
+		patterns = append(patterns, line)
+	}
+	return patterns
+}
+
+func isIgnored(name string, patterns []string) bool {
+	for _, p := range patterns {
+		if ok, err := filepath.Match(p, name); err == nil && ok {
+			return true
+		}
+	}
+	return false
 }
 
 func isDir(parent string, entry os.DirEntry) bool {
@@ -272,60 +401,13 @@ func skillRecentMtime(skillDir string) time.Time {
 	return newest
 }
 
-func categoryRecentMtime(categoryDir string) time.Time {
-	entries, err := os.ReadDir(categoryDir)
-	if err != nil {
-		return dirMtime(categoryDir)
-	}
-	var newest time.Time
-	for _, e := range entries {
-		if !isDir(categoryDir, e) || e.Name() == "archived" {
-			continue
-		}
-		skillDir := filepath.Join(categoryDir, e.Name())
-		if !hasRunnable(skillDir) {
-			continue
-		}
-		if t := skillRecentMtime(skillDir); t.After(newest) {
-			newest = t
-		}
-	}
-	if newest.IsZero() {
-		return dirMtime(categoryDir)
-	}
-	return newest
-}
-
-func printInventory(categories []item, mode sortMode) {
+func printInventory(categories []item, allSkills []item, mode sortMode) {
 	for i, cat := range categories {
 		if i > 0 {
 			fmt.Println()
 		}
 		fmt.Println(cat.title)
-		entries, err := os.ReadDir(cat.path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "  error: %v\n", err)
-			continue
-		}
-		var skills []item
-		for _, e := range entries {
-			if !isDir(cat.path, e) || e.Name() == "archived" {
-				continue
-			}
-			skillDir := filepath.Join(cat.path, e.Name())
-			if !hasRunnable(skillDir) {
-				continue
-			}
-			sk := item{title: e.Name(), path: skillDir}
-			switch mode {
-			case sortMtime:
-				sk.mtime = dirMtime(skillDir)
-			case sortRecent:
-				sk.mtime = skillRecentMtime(skillDir)
-			}
-			skills = append(skills, sk)
-		}
-		sortItems(skills, mode)
+		skills := skillsInCategory(allSkills, cat.category, mode)
 		for _, sk := range skills {
 			fmt.Printf("  %-32s  %s\n", sk.title, dirMtime(sk.path).Format("2006-01-02 15:04"))
 		}
@@ -347,7 +429,7 @@ func resolveSkillsDir() (path string, fromEnv bool) {
 	if v := os.Getenv("SKILLS_DIR"); v != "" {
 		return expandHome(v), true
 	}
-	return expandHome("~/skills/skills"), false
+	return expandHome("~/.claude/skills"), false
 }
 
 func main() {
@@ -370,7 +452,8 @@ func main() {
 			fmt.Println()
 			fmt.Println("  Presents an interactive chooser to select a skill category,")
 			fmt.Println("  then a skill, then launches Claude Code with that skill as")
-			fmt.Println("  the initial prompt.")
+			fmt.Println("  the initial prompt. Categories are read from each skill's")
+			fmt.Println("  SKILL.md category: frontmatter, not a directory.")
 			fmt.Println()
 			fmt.Println("Flags:")
 			fmt.Println("  --list           Print skill directories and their mtimes, then exit")
@@ -382,7 +465,7 @@ func main() {
 			fmt.Println("  recent   newest run.sh / SKILL.md inside, newest first")
 			fmt.Println()
 			fmt.Println("Environment:")
-			fmt.Println("  SKILLS_DIR   Root skills directory (default: ~/skills/skills)")
+			fmt.Println("  SKILLS_DIR   Root skills directory (default: ~/.claude/skills)")
 			fmt.Println("  SKILL_SORT   Default sort order (overridden by --sort)")
 			os.Exit(0)
 		case arg == "--version" || arg == "-v":
@@ -412,57 +495,24 @@ func main() {
 
 	skillsDir, _ := resolveSkillsDir()
 
-	entries, err := os.ReadDir(skillsDir)
+	allSkills, err := loadSkills(skillsDir, mode)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading skills directory %s: %v\n", skillsDir, err)
 		os.Exit(1)
 	}
-
-	var categories []item
-	for _, entry := range entries {
-		if !isDir(skillsDir, entry) {
-			continue
-		}
-		if entry.Name() == "archived" {
-			continue
-		}
-		subDir := filepath.Join(skillsDir, entry.Name())
-		subEntries, _ := os.ReadDir(subDir)
-		for _, sub := range subEntries {
-			if !isDir(subDir, sub) {
-				continue
-			}
-			if sub.Name() == "archived" {
-				continue
-			}
-			skillDir := filepath.Join(subDir, sub.Name())
-			if hasRunnable(skillDir) {
-				cat := item{title: entry.Name(), path: subDir}
-				switch mode {
-				case sortMtime:
-					cat.mtime = dirMtime(subDir)
-				case sortRecent:
-					cat.mtime = categoryRecentMtime(subDir)
-				}
-				categories = append(categories, cat)
-				break
-			}
-		}
-	}
-
-	if len(categories) == 0 {
-		fmt.Fprintln(os.Stderr, "no skill categories found in", skillsDir)
+	if len(allSkills) == 0 {
+		fmt.Fprintln(os.Stderr, "no skills found in", skillsDir)
 		os.Exit(1)
 	}
 
-	sortItems(categories, mode)
+	categories := groupByCategory(allSkills, mode)
 
 	if listMode {
-		printInventory(categories, mode)
+		printInventory(categories, allSkills, mode)
 		return
 	}
 
-	chosenSkill, ok := runChooser(categories, mode)
+	chosenSkill, ok := runChooser(categories, allSkills, mode)
 	if !ok {
 		os.Exit(0)
 	}
